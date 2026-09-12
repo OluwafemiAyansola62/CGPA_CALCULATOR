@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CGPA Ledger — Semester, Level &amp; Overall CGPA Calculator</title>
+<meta name="description" content="Track course grades by semester and level, and see your GPA and CGPA calculated automatically.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1F3A34;
+    --bg-soft: #274740;
+    --paper: #F6F3EA;
+    --paper-alt: #ECE6D4;
+    --rule: #D7CDB2;
+    --rule-strong: #B9AD8B;
+    --ink: #23241F;
+    --ink-soft: #6b6a5c;
+    --chalk: #E8C468;
+    --chalk-dark: #C9A23F;
+    --excellent: #2F6B47;
+    --good: #4A7A3D;
+    --fair: #9C7A22;
+    --weak: #A24638;
+    --radius-paper: 10px;
+    --radius-chip: 6px;
+    --font-serif: 'Lora', Georgia, serif;
+    --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ -webkit-text-size-adjust: 100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.45;
+  }
+
+  a{ color: inherit; }
+
+  button{ font-family: inherit; }
+
+  /* ---------- Header ---------- */
+  .app-header{
+    position: sticky;
+    top:0;
+    z-index: 20;
+    background: var(--bg);
+    color: var(--paper);
+    border-bottom: 3px solid var(--chalk);
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  }
+  .app-header-inner{
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand{
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: .2px;
+  }
+  .brand small{
+    display:block;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: .72rem;
+    color: rgba(246,243,234,.65);
+    margin-top: 2px;
+  }
+  .overall-box{
+    text-align: right;
+    line-height: 1.1;
+  }
+  .overall-box .label{
+    font-size: .68rem;
+    color: rgba(246,243,234,.7);
+  }
+  .overall-box .value{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 2rem;
+    color: var(--chalk);
+  }
+  .overall-box .sub{
+    font-size: .68rem;
+    color: rgba(246,243,234,.55);
+  }
+
+  /* ---------- Layout ---------- */
+  .container{
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 22px 20px 60px;
+  }
+
+  .legend{
+    display:flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-soft);
+    color: var(--paper);
+    border-radius: var(--radius-paper);
+    padding: 12px 16px;
+    margin-bottom: 22px;
+    font-size: .82rem;
+  }
+  .legend .legend-title{
+    font-family: var(--font-serif);
+    font-weight: 600;
+    color: var(--chalk);
+    margin-right: 4px;
+  }
+  .legend .chip{
+    font-family: var(--font-mono);
+    background: rgba(246,243,234,.08);
+    border: 1px solid rgba(246,243,234,.18);
+    border-radius: var(--radius-chip);
+    padding: 2px 8px;
+  }
+
+  /* ---------- Level card ---------- */
+  details.level{
+    background: var(--paper);
+    border-radius: var(--radius-paper);
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,.06);
+  }
+  details.level > summary.level-summary{
+    list-style: none;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--paper-alt);
+  }
+  details.level > summary::-webkit-details-marker{ display:none; }
+  .level-summary-main{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .chevron{
+    width: 10px; height: 10px;
+    border-right: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    transform: rotate(-45deg);
+    transition: transform .18s ease;
+    flex: none;
+  }
+  details.level[open] .chevron{ transform: rotate(45deg); }
+  .level-title{
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .level-cgpa{
+    display:flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .badge-label{
+    font-size: .68rem;
+    color: var(--ink-soft);
+  }
+  .badge-value{
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1.25rem;
+  }
+  .level-body{
+    padding: 6px 18px 18px;
+  }
+
+  /* ---------- Semester card ---------- */
+  details.semester{
+    border-top: 1px solid var(--rule);
+    padding: 12px 0;
+  }
+  details.semester:first-of-type{ border-top: none; }
+  details.semester > summary.semester-summary{
+    list-style: none;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 2px;
+  }
+  details.semester > summary::-webkit-details-marker{ display:none; }
+  .semester-title{
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1rem;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .semester-gpa{
+    display:flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .semester-gpa .badge-value{ font-size: 1.05rem; }
+  .semester-body{
+    padding: 10px 2px 2px;
+  }
+
+  /* ---------- Table ---------- */
+  .table-wrap{
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  table.course-table{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 320px;
+  }
+  table.course-table col.col-code{ width: auto; }
+  table.course-table col.col-unit{ width: 56px; }
+  table.course-table col.col-grade{ width: 56px; }
+  table.course-table col.col-gp{ width: 54px; }
+  table.course-table col.col-remove{ width: 34px; }
+
+  table.course-table thead th{
+    background: var(--paper-alt);
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--rule);
+    position: sticky;
+    top: 0;
+  }
+  table.course-table thead th.center{ text-align:center; }
+
+  table.course-table tbody tr{
+    border-bottom: 1px solid var(--rule);
+  }
+  table.course-table tbody tr:last-child{ border-bottom: none; }
+  table.course-table tbody td{
+    padding: 5px 6px;
+    vertical-align: middle;
+  }
+
+  .code-input{
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: .86rem;
+    padding: 6px 6px;
+    border-radius: 5px;
+    color: var(--ink);
+    min-width: 0;
+  }
+  .code-input:hover{ border-color: var(--rule); }
+  .code-input:focus{
+    outline: none;
+    border-color: var(--chalk-dark);
+    background: #fff;
+  }
+
+  select.unit-select, select.grade-select{
+    width: 100%;
+    border: 1px solid var(--rule);
+    background: #fff;
+    font-family: var(--font-mono);
+    font-size: .82rem;
+    padding: 5px 2px;
+    border-radius: 5px;
+    color: var(--ink);
+    text-align: center;
+    text-align-last: center;
+  }
+  select.unit-select:focus, select.grade-select:focus{
+    outline: none;
+    border-color: var(--chalk-dark);
+    box-shadow: 0 0 0 2px rgba(232,196,104,.35);
+  }
+
+  .gp-cell{
+    font-family: var(--font-mono);
+    font-size: .86rem;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+
+  .remove-row{
+    width: 26px; height: 26px;
+    border: 1px solid var(--rule);
+    background: #fff;
+    color: var(--weak);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .78rem;
+    line-height: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .remove-row:hover{ background: #fdeceA; border-color: var(--weak); }
+
+  .empty-row td{
+    padding: 16px 8px;
+    text-align:center;
+    color: var(--ink-soft);
+    font-size: .84rem;
+    font-style: italic;
+  }
+
+  /* ---------- Semester footer ---------- */
+  .semester-actions{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .add-course{
+    border: 1px dashed var(--rule-strong);
+    background: transparent;
+    color: var(--ink);
+    font-size: .82rem;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .add-course:hover{ border-color: var(--chalk-dark); color: var(--chalk-dark); }
+
+  .semester-totals{
+    display:flex;
+    gap: 14px;
+    font-size: .78rem;
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+  }
+  .semester-totals b{ color: var(--ink); }
+
+  /* ---------- GPA colour scale ---------- */
+  .gpa-excellent{ color: var(--excellent); }
+  .gpa-good{ color: var(--good); }
+  .gpa-fair{ color: var(--fair); }
+  .gpa-weak{ color: var(--weak); }
+
+  /* ---------- Footer ---------- */
+  .page-footer{
+    max-width: 920px;
+    margin: 10px auto 0;
+    padding: 18px 20px 0;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    color: rgba(246,243,234,.75);
+    font-size: .8rem;
+  }
+  .reset-all{
+    background: transparent;
+    border: 1px solid rgba(246,243,234,.35);
+    color: rgba(246,243,234,.9);
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: .8rem;
+  }
+  .reset-all:hover{ border-color: var(--weak); color: #f2a99e; }
+
+  /* ---------- Focus visibility ---------- */
+  button:focus-visible, summary:focus-visible, .code-input:focus-visible{
+    outline: 2px solid var(--chalk);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 600px){
+    .app-header-inner{ padding: 12px 14px; }
+    .brand{ font-size: 1.1rem; }
+    .overall-box .value{ font-size: 1.6rem; }
+    .container{ padding: 16px 12px 50px; }
+    details.level > summary.level-summary{ padding: 13px 14px; }
+    .level-body{ padding: 4px 12px 14px; }
+    .level-title{ font-size: 1.02rem; }
+    table.course-table col.col-unit{ width: 46px; }
+    table.course-table col.col-grade{ width: 46px; }
+    table.course-table col.col-gp{ width: 44px; }
+    table.course-table col.col-remove{ width: 30px; }
+    .code-input{ font-size: .8rem; padding: 6px 4px; }
+    select.unit-select, select.grade-select{ font-size: .76rem; padding: 5px 1px; }
+    .page-footer{ padding: 16px 14px 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .chevron{ transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="brand">
+      CGPA Ledger
+      <small>Semester, level &amp; cumulative GPA tracker</small>
+    </div>
+    <div class="overall-box">
+      <div class="label">Overall CGPA</div>
+      <div class="value" id="overall-cgpa-value">0.00</div>
+      <div class="sub"><span id="overall-units-value">0</span> units recorded</div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="legend">
+    <span class="legend-title">Grading scale</span>
+    <span class="chip">A = 5</span>
+    <span class="chip">B = 4</span>
+    <span class="chip">C = 3</span>
+    <span class="chip">D = 2</span>
+    <span class="chip">E = 1</span>
+    <span class="chip">F = 0</span>
+  </div>
+
+  <div id="levels"><!-- level sections are built by JS --></div>
+
+</main>
+
+<div class="page-footer">
+  <span>Entries save automatically in this browser.</span>
+  <button type="button" class="reset-all" id="reset-all">Clear all data</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "cgpa-ledger-data-v1";
+  var LEVELS = [100, 200, 300, 400];
+  var SEMESTERS = [1, 2];
+  var DEFAULT_ROWS = 6;
+  var GRADE_POINTS = { A:5, B:4, C:3, D:2, E:1, F:0 };
+  var UNIT_OPTIONS = [0,1,2,3,4,5,6,7,8];
+  var GRADE_OPTIONS = ["A","B","C","D","E","F"];
+
+  var data = null;
+  var levelsRoot = document.getElementById("levels");
+
+  function emptyRow(){ return { code:"", unit:"", grade:"" }; }
+
+  function defaultData(){
+    var d = {};
+    LEVELS.forEach(function(level){
+      d[level] = {};
+      SEMESTERS.forEach(function(sem){
+        var rows = [];
+        for (var i=0; i<DEFAULT_ROWS; i++) rows.push(emptyRow());
+        d[level][sem] = rows;
+      });
+    });
+    return d;
+  }
+
+  function sanitizeRow(r){
+    if (!r || typeof r !== "object") return emptyRow();
+    var unit = r.unit;
+    if (unit !== "" && UNIT_OPTIONS.indexOf(Number(unit)) === -1) unit = "";
+    var grade = r.grade;
+    if (grade !== "" && GRADE_OPTIONS.indexOf(grade) === -1) grade = "";
+    return {
+      code: typeof r.code === "string" ? r.code : "",
+      unit: unit === "" ? "" : Number(unit),
+      grade: grade === "" ? "" : grade
+    };
+  }
+
+  function mergeShape(parsed){
+    var d = defaultData();
+    if (parsed && typeof parsed === "object"){
+      LEVELS.forEach(function(level){
+        if (parsed[level]){
+          SEMESTERS.forEach(function(sem){
+            var rows = parsed[level][sem];
+            if (Array.isArray(rows) && rows.length > 0){
+              d[level][sem] = rows.map(sanitizeRow);
+            }
+          });
+        }
+      });
+    }
+    return d;
+  }
+
+  function loadData(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return mergeShape(JSON.parse(raw));
+    } catch(e){ /* fall through to defaults */ }
+    return defaultData();
+  }
+
+  var saveTimer = null;
+  function saveData(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+      catch(e){ /* storage unavailable — ignore silently */ }
+    }, 250);
+  }
+
+  function escapeAttr(str){
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function computeGP(row){
+    if (row.unit !== "" && row.grade !== ""){
+      return GRADE_POINTS[row.grade] * Number(row.unit);
+    }
+    return null;
+  }
+
+  function gpaClass(value, hasData){
+    if (!hasData) return "";
+    if (value >= 4.5) return "gpa-excellent";
+    if (value >= 3.5) return "gpa-good";
+    if (value >= 2.5) return "gpa-fair";
+    return "gpa-weak";
+  }
+
+  function applyGpaColor(el, value, hasData){
+    el.classList.remove("gpa-excellent","gpa-good","gpa-fair","gpa-weak");
+    var cls = gpaClass(value, hasData);
+    if (cls) el.classList.add(cls);
+  }
+
+  /* ---------- DOM building ---------- */
+
+  function buildLevelSection(level){
+    var det = document.createElement("details");
+    det.className = "level";
+    det.dataset.level = level;
+    det.open = (level === 100);
+
+    var summary = document.createElement("summary");
+    summary.className = "level-summary";
+    summary.innerHTML =
+      '<span class="level-summary-main">' +
+        '<span class="chevron" aria-hidden="true"></span>' +
+        '<span class="level-title">' + level + ' Level</span>' +
+      '</span>' +
+      '<span class="level-cgpa">' +
+        '<span class="badge-label">CGPA</span> ' +
+        '<span class="badge-value" data-level-cgpa="' + level + '">0.00</span>' +
+      '</span>';
+    det.appendChild(summary);
+
+    var body = document.createElement("div");
+    body.className = "level-body";
+    SEMESTERS.forEach(function(sem){
+      body.appendChild(buildSemesterBlock(level, sem));
+    });
+    det.appendChild(body);
+
+    return det;
+  }
+
+  function buildSemesterBlock(level, sem){
+    var det = document.createElement("details");
+    det.className = "semester";
+    det.dataset.level = level;
+    det.dataset.sem = sem;
+    det.open = (level === 100 && sem === 1);
+
+    var summary = document.createElement("summary");
+    summary.className = "semester-summary";
+    summary.innerHTML =
+      '<span class="semester-title">' +
+        '<span class="chevron" aria-hidden="true"></span>' +
+        'Semester ' + sem +
+      '</span>' +
+      '<span class="semester-gpa">' +
+        '<span class="badge-label">GPA</span> ' +
+        '<span class="badge-value" data-sem-gpa>0.00</span>' +
+      '</span>';
+    det.appendChild(summary);
+
+    var body = document.createElement("div");
+    body.className = "semester-body";
+
+    var wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "course-table";
+    table.innerHTML =
+      '<colgroup>' +
+        '<col class="col-code"><col class="col-unit"><col class="col-grade">' +
+        '<col class="col-gp"><col class="col-remove">' +
+      '</colgroup>' +
+      '<thead><tr>' +
+        '<th>Course code</th><th class="center">Unit</th><th class="center">Grade</th>' +
+        '<th class="center">Grade pt</th><th></th>' +
+      '</tr></thead>' +
+      '<tbody id="tbody-' + level + '-' + sem + '"></tbody>';
+    wrap.appendChild(table);
+    body.appendChild(wrap);
+
+    var actions = document.createElement("div");
+    actions.className = "semester-actions";
+    actions.innerHTML =
+      '<button type="button" class="add-course" data-level="' + level + '" data-sem="' + sem + '">+ Add course</button>' +
+      '<div class="semester-totals">' +
+        '<span>Units <b data-sem-units>0</b></span>' +
+        '<span>Points <b data-sem-points>0</b></span>' +
+      '</div>';
+    body.appendChild(actions);
+
+    det.appendChild(body);
+    return det;
+  }
+
+  function renderTbody(level, sem){
+    var tbody = document.getElementById("tbody-" + level + "-" + sem);
+    if (!tbody) return;
+    var rows = data[level][sem];
+    if (rows.length === 0){
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No courses added yet — use "Add course" below.</td></tr>';
+      return;
+    }
+    var html = "";
+    rows.forEach(function(row, idx){
+      var gp = computeGP(row);
+      html +=
+        '<tr>' +
+          '<td><input type="text" class="code-input" maxlength="16" placeholder="e.g. MTH101" value="' + escapeAttr(row.code) + '" ' +
+            'data-level="' + level + '" data-sem="' + sem + '" data-idx="' + idx + '" data-field="code" aria-label="Course code"></td>' +
+          '<td>' + buildSelect(UNIT_OPTIONS, row.unit, level, sem, idx, "unit", "Course unit") + '</td>' +
+          '<td>' + buildSelect(GRADE_OPTIONS, row.grade, level, sem, idx, "grade", "Grade") + '</td>' +
+          '<td class="gp-cell" data-gp-cell>' + (gp === null ? "–" : gp) + '</td>' +
+          '<td><button type="button" class="remove-row" data-level="' + level + '" data-sem="' + sem + '" data-idx="' + idx + '" aria-label="Remove this course">&times;</button></td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function buildSelect(options, currentValue, level, sem, idx, field, label){
+    var html = '<select class="' + (field === "unit" ? "unit-select" : "grade-select") + '" ' +
+      'data-level="' + level + '" data-sem="' + sem + '" data-idx="' + idx + '" data-field="' + field + '" aria-label="' + label + '">';
+    html += '<option value=""' + (currentValue === "" ? " selected" : "") + '>–</option>';
+    options.forEach(function(opt){
+      var selected = String(currentValue) === String(opt) ? " selected" : "";
+      html += '<option value="' + opt + '"' + selected + '>' + opt + '</option>';
+    });
+    html += '</select>';
+    return html;
+  }
+
+  function renderAllTbodies(){
+    LEVELS.forEach(function(level){
+      SEMESTERS.forEach(function(sem){ renderTbody(level, sem); });
+    });
+  }
+
+  function buildAllLevels(){
+    levelsRoot.innerHTML = "";
+    LEVELS.forEach(function(level){
+      levelsRoot.appendChild(buildLevelSection(level));
+    });
+    renderAllTbodies();
+  }
+
+  /* ---------- Calculation ---------- */
+
+  function recalcAll(){
+    var runningUnits = 0, runningPoints = 0;
+
+    LEVELS.forEach(function(level){
+      var levelUnits = 0, levelPoints = 0;
+
+      SEMESTERS.forEach(function(sem){
+        var rows = data[level][sem];
+        var tbody = document.getElementById("tbody-" + level + "-" + sem);
+        var units = 0, points = 0;
+
+        rows.forEach(function(row, idx){
+          var gp = computeGP(row);
+          if (gp !== null){
+            units += Number(row.unit);
+            points += gp;
+          }
+          if (tbody && tbody.children[idx]){
+            var cell = tbody.children[idx].querySelector("[data-gp-cell]");
+            if (cell) cell.textContent = (gp === null ? "–" : gp);
+          }
+        });
+
+        var gpa = units > 0 ? (points / units) : 0;
+        var semEl = document.querySelector('.semester[data-level="' + level + '"][data-sem="' + sem + '"]');
+        if (semEl){
+          var gpaEl = semEl.querySelector("[data-sem-gpa]");
+          if (gpaEl){ gpaEl.textContent = gpa.toFixed(2); applyGpaColor(gpaEl, gpa, units > 0); }
+          var unitsEl = semEl.querySelector("[data-sem-units]");
+          if (unitsEl) unitsEl.textContent = units;
+          var pointsEl = semEl.querySelector("[data-sem-points]");
+          if (pointsEl) pointsEl.textContent = points;
+        }
+
+        levelUnits += units;
+        levelPoints += points;
+      });
+
+      runningUnits += levelUnits;
+      runningPoints += levelPoints;
+      var levelCgpa = runningUnits > 0 ? (runningPoints / runningUnits) : 0;
+
+      var levelEl = document.querySelector('.level[data-level="' + level + '"]');
+      if (levelEl){
+        var badge = levelEl.querySelector('[data-level-cgpa="' + level + '"]');
+        if (badge){ badge.textContent = levelCgpa.toFixed(2); applyGpaColor(badge, levelCgpa, runningUnits > 0); }
+      }
+    });
+
+    var overall = runningUnits > 0 ? (runningPoints / runningUnits) : 0;
+    var overallEl = document.getElementById("overall-cgpa-value");
+    if (overallEl){ overallEl.textContent = overall.toFixed(2); applyGpaColor(overallEl, overall, runningUnits > 0); }
+    var overallUnitsEl = document.getElementById("overall-units-value");
+    if (overallUnitsEl) overallUnitsEl.textContent = runningUnits;
+  }
+
+  /* ---------- Events ---------- */
+
+  levelsRoot.addEventListener("input", function(e){
+    var t = e.target;
+    if (t.classList.contains("code-input")){
+      var level = t.dataset.level, sem = t.dataset.sem, idx = Number(t.dataset.idx);
+      data[level][sem][idx].code = t.value;
+      saveData();
+    }
+  });
+
+  levelsRoot.addEventListener("change", function(e){
+    var t = e.target;
+    if (t.classList.contains("unit-select") || t.classList.contains("grade-select")){
+      var level = t.dataset.level, sem = t.dataset.sem, idx = Number(t.dataset.idx), field = t.dataset.field;
+      var value = t.value;
+      data[level][sem][idx][field] = (field === "unit") ? (value === "" ? "" : Number(value)) : value;
+      recalcAll();
+      saveData();
+    }
+  });
+
+  levelsRoot.addEventListener("click", function(e){
+    var addBtn = e.target.closest(".add-course");
+    if (addBtn){
+      var level = addBtn.dataset.level, sem = addBtn.dataset.sem;
+      data[level][sem].push(emptyRow());
+      renderTbody(level, sem);
+      recalcAll();
+      saveData();
+      return;
+    }
+    var removeBtn = e.target.closest(".remove-row");
+    if (removeBtn){
+      var level2 = removeBtn.dataset.level, sem2 = removeBtn.dataset.sem, idx2 = Number(removeBtn.dataset.idx);
+      data[level2][sem2].splice(idx2, 1);
+      renderTbody(level2, sem2);
+      recalcAll();
+      saveData();
+    }
+  });
+
+  document.getElementById("reset-all").addEventListener("click", function(){
+    var ok = window.confirm("This will permanently clear every course, unit and grade you've entered on this device. Continue?");
+    if (!ok) return;
+    data = defaultData();
+    renderAllTbodies();
+    recalcAll();
+    saveData();
+  });
+
+  /* ---------- Init ---------- */
+
+  data = loadData();
+  buildAllLevels();
+  recalcAll();
+
+})();
+</script>
+
+</body>
+</html>
