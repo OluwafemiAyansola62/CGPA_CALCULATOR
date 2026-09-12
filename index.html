@@ -386,6 +386,12 @@
     font-size: .8rem;
   }
   .reset-all:hover{ border-color: var(--weak); color: #f2a99e; }
+  .footer-actions{
+    display:flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #export-data:hover, #import-trigger:hover{ border-color: var(--chalk); color: var(--chalk); }
 
   /* ---------- Focus visibility ---------- */
   button:focus-visible, summary:focus-visible, .code-input:focus-visible{
@@ -449,8 +455,13 @@
 </main>
 
 <div class="page-footer">
-  <span>Entries save automatically in this browser.</span>
-  <button type="button" class="reset-all" id="reset-all">Clear all data</button>
+  <span>Entries save automatically in this browser. Use export/import to move data to another device.</span>
+  <span class="footer-actions">
+    <button type="button" class="reset-all" id="export-data">Export data</button>
+    <button type="button" class="reset-all" id="import-trigger">Import data</button>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+    <button type="button" class="reset-all" id="reset-all">Clear all data</button>
+  </span>
 </div>
 
 <script>
@@ -801,6 +812,54 @@
     renderAllTbodies();
     recalcAll();
     saveData();
+  });
+
+  /* ---------- Export / Import (move data between devices) ---------- */
+
+  document.getElementById("export-data").addEventListener("click", function(){
+    var payload = JSON.stringify(data, null, 2);
+    var blob = new Blob([payload], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = "cgpa-ledger-backup-" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  var importFileInput = document.getElementById("import-file");
+  document.getElementById("import-trigger").addEventListener("click", function(){
+    importFileInput.value = "";
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener("change", function(){
+    var file = importFileInput.files && importFileInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch(e){
+        window.alert("That file doesn't look like a valid CGPA Ledger backup (couldn't read it as JSON).");
+        return;
+      }
+      var ok = window.confirm("Importing will replace everything currently entered on this device with the contents of this file. Continue?");
+      if (!ok) return;
+      data = mergeShape(parsed);
+      renderAllTbodies();
+      recalcAll();
+      saveData();
+      window.alert("Import complete.");
+    };
+    reader.onerror = function(){
+      window.alert("Couldn't read that file. Please try again.");
+    };
+    reader.readAsText(file);
   });
 
   /* ---------- Init ---------- */
